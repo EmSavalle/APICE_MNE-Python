@@ -34,7 +34,7 @@ def eega_tDefBTBC(EEG,args):
 	P.minBadTime = 0
 	P.maskTime = 0
 	P.minGoodTime = 0
-	P,OK,extrainput = eega_getoptions(p,varargin)
+	P,OK,extrainput = eega_getoptions(P,varargin)
 
 	if( not OK):
 		raise ValueError("eega_tDefBTBC : Non recognized inputs")
@@ -94,7 +94,7 @@ def eega_tDefBTBC(EEG,args):
 	
 	BCBTnew = [[[1 for i in range(nS)] for i in range(nEl)] for i in range(nEp)]
 	for ep in range(nEp):
-		for el in range(nEg):
+		for el in range(nEl):
 			for s in range(nS):
 				if(BCnew[ep][el] == 1):
 					BCBTnew[ep][el][s] = 1
@@ -112,14 +112,15 @@ def eega_tDefBTBC(EEG,args):
 			BCall[ch] = 1
 			for epoch in range(len(BCnew)):
 				BCnew[epoch][ch] = 1
-
+	if(len(ncycle) == 1):
+		ncycle = list(ncycle)[0]
 	for icyc in range(1,ncycle):
 
 		## DEFINE BAD SAMPLES BASED ON ABSOLUTE THRESHOLD
 
 		# number of bad channels per sample
 		thrsBadCh = DefBT[icyc]
-		bct = EEG.artifacts.bct
+		bct = EEG.artifacts.BCT
 		sumBad = [[0 for i in range(nS)] for i in range(nEp)]
 		sumNotBad = [[0 for i in range(nS)] for i in range(nEp)]
 		for ep in range(nEp):
@@ -128,14 +129,14 @@ def eega_tDefBTBC(EEG,args):
 					if(BCnew[ep][el] == 1):
 						bct[ep][el][s] = 0
 					sumBad[ep][s]=sumBad[ep][s]+bct[ep][el][s]
-					sumNotBad[ep][s]=sumNotBad[ep][s]+(BCnew[ep][el][s]+1)%2
+					sumNotBad[ep][s]=sumNotBad[ep][s]+(BCnew[ep][el]+1)%2
 		
 
 
 		#number of bad samples per channel
 		thrsBadSAll = DefBCAll[icyc]
-		bct = EEG.artifacts.bct
-		nbadSall = [0 for i in range(nEl)]
+		bct = EEG.artifacts.BCT
+		nbadSAll = [0 for i in range(nEl)]
 		nnotbadSall = [0 for i in range(nEl)]
 		for ep in range(nEp):
 			for el in range(nEl):
@@ -143,18 +144,18 @@ def eega_tDefBTBC(EEG,args):
 					if(BTnew[ep][s] == 1):
 						bct[ep][el][s]=0
 					nbadSAll[el] = nbadSAll[el]+bct[ep][el][s]
-					nnotbadSall[el] = nbadSAll[el]+(BTnew[ep][el][s]+1)%2
+					nnotbadSall[el] = nbadSAll[el]+(BTnew[ep][s]+1)%2
 
 
 		thrsBadSAll = DefBCAll[icyc]
 		thrsBadS = DefBC[icyc]
 		thrsBadCh = DefBT[icyc]
 		
-		bct = EEG.artifacts.bct
-		bct2 = EEG.artifacts.bct
+		bct = EEG.artifacts.BCT
+		bct2 = EEG.artifacts.BCT
 
 		#number of bad samples per channel
-		nbadSall = [0 for i in range(nEl)]
+		nbadSAll = [0 for i in range(nEl)]
 		nnotbadSall = [0 for i in range(nEl)]
 
 		# number of bad channels per sample
@@ -170,16 +171,16 @@ def eega_tDefBTBC(EEG,args):
 					if(BCnew[ep][el] == 1):
 						bct[ep][el][s] = 0
 					nbadCh[ep][s]=nbadCh[ep][s]+bct[ep][el][s]
-					nnotbadCh[ep][s]=nnotbadCh[ep][s]+(BCnew[ep][el][s]+1)%2
+					nnotbadCh[ep][s]=nnotbadCh[ep][s]+(BCnew[ep][el]+1)%2
 
 					if(BTnew[ep][s] == 1):
 						bct2[ep][el][s]=0
 
 					nbadSAll[el] = nbadSAll[el]+bct2[ep][el][s]
-					nnotbadSall[el] = nbadSAll[el]+(BTnew[ep][el][s]+1)%2
+					nnotbadSall[el] = nbadSAll[el]+(BTnew[ep][s]+1)%2
 
 					nbadS[ep][el] = nbadS[ep][el]+bct2[ep][el][s]
-					nnotbadS[ep][el] = nnotbadS[ep][el]+(BTnew[ep][el][s]+1)%2
+					nnotbadS[ep][el] = nnotbadS[ep][el]+(BTnew[ep][s]+1)%2
 		
 		## DEFINE BAD SAMPLES BASED ON ABSOLUTE THRESHOLD
 		pbadCh = [[0 for i in range(nS)] for i in range(nEp)]
@@ -219,7 +220,8 @@ def eega_tDefBTBC(EEG,args):
 		sumDifference = sum([sum([sum(j) for j in i])for i in T])
 		BCBTnew = bcbt
 		print("Cycle "+str(icyc)+" , new rejected data "+str(100*sumDifference/(nEp*nEl*nS)))
-
+	BC = BCold
+	BT = BTold
 	## Update
 	for ep in range(nEp):	
 		for el in range(nEl):
@@ -243,7 +245,7 @@ def eega_tDefBTBC(EEG,args):
 			badi = find(badi)
 			badf = find(badf)
 			idx = [1 if(badf[i]-badi[i] < P.minBadTime) else 0 for i in range(len(badi))]
-			for i in idx:
+			for i in range(len(idx)):
 				for j in range(badi[i],badf[i]+1):
 					isbadsmpl[j]=0
 			for s in range(nS):
@@ -281,8 +283,8 @@ def eega_tDefBTBC(EEG,args):
 
 			goodi = find(goodi)
 			goodf = find(goodf)
-			idx = [1 if(goodf[i]-goodi[i] < P.minGoodTime) else 0 for i in range(len(goodi))]
-			for i in idx:
+			idx = [1 if(goodf[i]-goodi[i] < P.minGoodTime) else 0 for i in range(min(len(goodi),len(goodf)))]
+			for i in range (len(idx)):
 				for j in range(goodi[i],goodf[i]+1):
 					isbadsmpl[j]=1
 			for s in range(nS):
@@ -326,12 +328,16 @@ def eega_tDefBTBC(EEG,args):
 	## Update the rejection matrix
 	EEG.artifacts.BT = BT
 	EEG.artifacts.BC = BCnew
-	EEG.reject.rejmanualE = EEG.artifacts.BC
+	if(hasattr(EEG,"reject")):
+		EEG.reject.rejmanualE = EEG.artifacts.BC
+	else:
+		EEG.reject = type('', (), {})()
+		EEG.reject.rejmanualE = EEG.artifacts.BC
 	if(hasattr(None,'eega_summarypp')):
 		EEG = eega_summarypp(EEG)
 
 	## Plot rejection matrix
-	if(P.plot):
+	if(P.plot and False):
 		if(hasattr(None,'eega_plot_artifacts')):
 			eega_plot_artifacts(EEG)
 	return EEG

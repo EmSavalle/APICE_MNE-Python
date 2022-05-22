@@ -51,6 +51,7 @@ class example_APICE_ArtPP_Jump():
         self.Art[i].P.timelim         = 0.020
 
         # REJECT: too short not included segments
+        i=i+1
         self.Art.append(art())
         self.Art[i].algorithm        = 'eega_tRejShortGood'
         self.Art[i].loops            = 2

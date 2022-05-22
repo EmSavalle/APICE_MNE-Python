@@ -65,6 +65,5 @@ def eega_tRejShortGood(EEG,varargin):
 
 	n = nEl*nS*nEp;
 	sumNew = sum(bct);
-	print('Total data rejected : '+str(sumNew/n*100 ))
-	eega_plot_artifacts(EEG,bct)
+	print('eega_tRejShortGood : Total data rejected : '+str(sumNew/n*100 ))
 	return EEG,bct

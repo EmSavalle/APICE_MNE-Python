@@ -194,6 +194,7 @@ def eega_tRejPwr(EEG,varargin):
                         bct[ep][el][s] = bct[ep][el][s] or bctmask[ep][el][s]
         del bctmask
     EEG.artifacts.BCT = np.logical_or(EEG.artifacts.BCT,bct)
-    eega_plot_artifacts(EEG,bct)
+
+    print("eega_tRejPwr : Total data rejected "+ str(np.sum(bct)/n*100)+"%")
     return EEG,bct
 

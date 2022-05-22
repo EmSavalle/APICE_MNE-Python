@@ -45,6 +45,7 @@ def eega_tArtifacts(EEG,args):
         
     Steps = []
     ArtLoops = []
+
     for i in range(len(Art)):
         if(hasattr(Art[i],'algorithm') and Art[i].algorithm != []):
             Steps.append(Art[i].algorithm)
@@ -52,11 +53,14 @@ def eega_tArtifacts(EEG,args):
             raise ValueError('eega_tArtifacts: Field ".algorithm" is missing for step '+str(i))
         if(hasattr(Art[i],'loops')):
             if(type(Art[i].loops) == list):
+                print(Art[i])
+                print(Art[i].algorithm)
+                print(Art[i].loops)
                 ArtLoops.append(Art[i].loops[0])
             else:
                 ArtLoops.append(Art[i].loops)
         else:
-            raise ValueError('eega_tArtifacts: Field ".loop" is missing for step '+str(i))
+            raise ValueError('eega_tArtifacts: Field ".loops" is missing for step '+str(i))
         if(not hasattr(Art[i],'P')):
             raise ValueError('eega_tArtifacts: Field ".P" is missing for step '+str(i))
     
@@ -104,6 +108,7 @@ def eega_tArtifacts(EEG,args):
     #------------------------------------------------------------------
     # Get already rejected data if the rejection structure already exist
     if(not hasattr(EEG,'artifacts')):
+        print("eega_tArtifacts : Set BCT")
         EEG.artifacts = Artifacts()
         if(not hasattr(EEG.artifacts,'algorithm')):
             EEG.artifacts.algorithm = Algorithm()
@@ -271,6 +276,7 @@ def eega_tArtifacts(EEG,args):
             ok=1
         if loop==cnf.MaxLoop:
             ok=1
+        eega_plot_artifacts(EEG,[])
     
     print("\nEnd of loops")
 

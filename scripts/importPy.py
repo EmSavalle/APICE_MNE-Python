@@ -51,6 +51,7 @@ import numpy.matlib as npm
 import matplotlib.pyplot as plt
 
 #Look inside the folders and import all .py files
+#This is where you need to add the path to a folder you've added
 folders = ['artifacts/','artifacts/detect/','artifacts/correct/','plot/','general/','events/','import/','process/','dev/',"examples/parameters/"]
 dir = currentPath   
 for f in folders:

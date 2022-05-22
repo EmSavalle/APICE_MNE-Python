@@ -1,38 +1,16 @@
 from importPy import *
-def eega_tRejAmp(EEG,args):
-	# -------------------------------------------------------------------------
-	# Function that rejects based on the mean of the absolute amplitude
-	# 
-	# INPUTS
-	# EEG   EEG structure
-	#
-	# OPTIONAL INPUTS
-	#   - thresh		upper threshold (default 2)
-	#   - refdata	   referenced average the data before (1) or not (0) (default 0)
-	#   - refbaddata	how to teat bad data when reference average ('replacebynan' / 'none' / 'zero', default 'none')
-	#   - dozscore	  z-score the data per electrodes before (1) or not (0) (default 0)
-	#   - relative	  appply relative (1) or absolute (0) thresholds (default 1)
-	#   - xelectrode	appply the threhold per electrode (1) or over all electrodes (0) (default 1)
-	#   - mask		  time to mask bad segments (default 0)
-	#
-	# OUTPUTS
-	#   EEG	 output data
-	#   BCT	 bad data 
-	#   T	   threshold
-	#
-	# -------------------------------------------------------------------------
-	print('### Rejecting based on the amplitud ###\n' )
-
+def eega_tRejFastChange(EEG,args):
 	## ------------------------------------------------------------------------
 	## Parameters
 	P=p()
 	P.thresh = 3
+	P.tmotion = 0.020
 	P.refdata = 0
 	P.refbaddata = 'none' # 'replacebynan' / 'none' / 'zero'
 	P.dozscore = 0
 	P.relative = 1
 	P.xelectrode = 1
-	P.mask = 0.05
+	P.mask = 0.
 
 	P.updateBCT = 1
 	P.updatesummary = 1
@@ -43,17 +21,17 @@ def eega_tRejAmp(EEG,args):
 
 	P, OK, extrainput = eega_getoptions(P, varargin)
 	if not OK:
-		raise ValueError('eega_tRejAmp: Non recognized inputs')
+		raise ValueError('eega_tRejFastChange: Non recognized inputs')
 
 	# Check the inputs
 	if type(P.dozscore) == list or (P.dozscore != 0 and P.dozscore != 1):
-		raise ValueError('eega_tRejAmp: dozscore has to be 0 / 1')
+		raise ValueError('eega_tRejFastChange: dozscore has to be 0 / 1')
 	
 	if (P.relative != 0 and P.relative != 1): #Verifie si les valeures de P.relative sont bien soit 1 soit 0
-		raise ValueError('eega_tRejAmp: relative has to have values 0 / 1')
+		raise ValueError('eega_tRejFastChange: relative has to have values 0 / 1')
 
 	if (P.xelectrode != 0 and P.xelectrode != 1):
-		raise ValueError('eega_tRejAmp: xelectrode has to have values 0 / 1')
+		raise ValueError('eega_tRejFastChange: xelectrode has to have values 0 / 1')
 
 
 	print('- referenced data: '+str(P.refdata))
@@ -83,19 +61,42 @@ def eega_tRejAmp(EEG,args):
 		EEG, mu, sd = eega_ZscoreForArt(EEG)
 
 	## ------------------------------------------------------------------------
-	## Reject
+	## Calculate the max change
+
+	#Nm of samples in the time window
+	smpls_amp = round(P.tmotion * EEG.info["sfreq"])
+	if(smpls_amp%2 == 1):
+		smpls_amp = smpls_amp -1
+	ids = np.array(list(range(int(-smpls_amp/2),int(smpls_amp/2))))
+	#First derivative
+	d = np.diff(EEG._data,1,len(shape)-1)
+	
+	change = np.zeros(shape)
+	for ep in range(nEp):
+		for el in range(nEl):
+			for s in range(nS):
+				sampStud = ids+s
+				sampStud[sampStud<0]=0
+				sampStud[sampStud>nS-2]=nS-2
+				v = sum(d[el][sampStud])
+				if(len(shape)>2):
+					change[ep][el][s]=v
+				else:
+					change[el][s]=v
+	change = np.abs(change)   
+
 	T = np.zeros(nEl)
 	Ru = np.zeros((nEp,nEl,nS))
 	if(P.relative == 1):
 		if(P.xelectrode == 1):
 			ru_sum = 0
-			rl_sum = 0
 			for ep in range(nEp):
 				d = []
-				if(len(shape)>2):
-					d = EEG._data[ep]
+				print(shape)
+				if(len(change.shape)>2):
+					d = change[ep]
 				else:
-					d = EEG._data
+					d = change
 				for el in range(nEl):
 					dat = d[el]
 					dat[EEG.artifacts.BCT[ep][el]]=float("nan")
@@ -106,23 +107,23 @@ def eega_tRejAmp(EEG,args):
 					T[el]=t_u_el
 					ru_sum = ru_sum+np.sum( abs(dat)>t_u_el)
 		else:
-			dd = abs(EEG._data)
+			dd = change
 			perc = np.percentile(dd[np.logical_not(EEG.artifacts.BCT[0])],75)
 			IQ = 2 * perc
 			t_u = perc + P.thresh*IQ
-			Ru = np.logical_or(Ru,abs(EEG._data)>t_u)
-			ru_sum = sum(abs(EEG._data)>t_u)
+			Ru = np.logical_or(Ru,change>t_u)
+			ru_sum = sum(change>t_u)
 	else:
+		dd = change
 		t_u = P.thresh
-		Ru = np.logical_or(Ru, abs(EEG._data)>t_u)
+		Ru = np.logical_or(Ru, change>t_u)
 		T[:] = t_u
-		ru_sum=sum(abs(EEG._data)>t_u) 
-
+		ru_sum=sum(change>t_u) 
 	##Display rejected data
 	n = nEl*nS*nEp
-	print('Data rejected thresh_u '+ str(np.sum(ru_sum)/n*100))
+	print('Data rejected thresh_u '+ str(ru_sum/n*100))
 	BCT = Ru
-	
+	del Ru
 
 	## Mask around
 	if(P.mask !=0):
@@ -141,4 +142,5 @@ def eega_tRejAmp(EEG,args):
 	if P.refdata:
 		#EEG._data = EEG._data + npm.repmat(reference,EEG._data.shape[0],1);
 		print('eega_tRejAmp : TODO fix refdata')
+	
 	return EEG,BCT

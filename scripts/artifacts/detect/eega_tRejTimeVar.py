@@ -209,5 +209,4 @@ def eega_tRejTimeVar(EEG,args):
 	n=nEp*nEl*nS
 	print("eega_tRejTimeVar : Total data rejected "+ str(np.sum(bct)/n)+"%")
 
-	eega_plot_artifacts(EEG,bct)
 	return EEG,bct

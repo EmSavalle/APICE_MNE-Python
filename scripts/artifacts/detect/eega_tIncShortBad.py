@@ -1,6 +1,6 @@
 from importPy import *
 def eega_tIncShortBad(EEG,args):
-	print('### Rejecting short good segments ###\n' )
+	print('### Rejecting short bad segments ###\n' )
 
 	## ------------------------------------------------------------------------
 	## Parameters
@@ -10,7 +10,7 @@ def eega_tIncShortBad(EEG,args):
 	P.updateBCT = 1
 	P.updatesummary = 1
 	P.updatealgorithm = 1
-	P,OK,extrainput=eega_getoptions(P,varargin)
+	P,OK,extrainput=eega_getoptions(P,args)
 
 	shape = EEG.get_data().shape
 	nEl,nS,nEp = (0,0,0)
@@ -24,31 +24,28 @@ def eega_tIncShortBad(EEG,args):
 	timelim = round(P.timelim*EEG.info['sfreq']);
 	if nS<=timelim:
 		timelim = nS-1
-	bctin =np.logical_not(EEG.artifacts.BCT)
-	bct = np.zeros((nEp,nEl,nS))
+	bct = EEG.artifacts.BCT
+	bctold = EEG.artifacts.BCT
 	if(len(shape) == 2):
 		for el in range(nEl):
 			#This detect a chain of 1 in an array that is shorter thant timelim and set them to 0
-			a = np.array(bctin[0][el])
+			a = np.array(bct[0][el])
 			
-			goodi = [int(int(a[i])-int(a[i-1])==1) for i in range(1,len(a)-1)]
-			#goodi = (a[1:(len(a))]-a[0:(len(a)-1)] == 1)
-			goodi = np.array([bool(a[0])]+goodi)
-			goodi = goodi!=0
-			goodf =  [int(int(a[i])-int(a[i+1])==1) for i in range(0,len(a)-2)]
-			#goodf = (a[0:(len(a)-1)]-a[1:(len(a))] == 1)
-			goodf = np.array(goodf+[a[len(a)-1]==1])
-			goodf = goodf!=0
-			fgoodi = find(goodi)
-			fgoodf = find(goodf)
-			for i in range(0,len(fgoodi)):
-				if(fgoodf[i]-fgoodi[i]<timelim):
-					bct[0][el][fgoodi[i]: fgoodf[i]+1]=True
+			badi = [int(int(a[i])-int(a[i-1])==1) for i in range(1,len(a)-1)]
+			badi = np.array([bool(a[0])]+badi)
+			badi = badi!=0
+			badf =  [int(int(a[i])-int(a[i+1])==1) for i in range(0,len(a)-2)]
+			badf = np.array(badf+[a[len(a)-1]==1])
+			badf = badf!=0
+			fbadi = find(badi)
+			fbadf = find(badf)
+			for i in range(0,min(len(fbadf),len(fbadi))):
+				if(fbadf[i]-fbadi[i]<timelim):
+					bct[0][el][fbadi[i]: fbadf[i]+1]=True
 	
-	EEG.artifacts.BCT = np.logical_or(EEG.artifacts.BCT,bct)
+	EEG.artifacts.BCT = np.logical_and(EEG.artifacts.BCT,bct)
 
 	n = nEl*nS*nEp;
 	sumNew = sum(bct);
-	print('Total data rejected : '+str(sumNew/n*100 ))
-	eega_plot_artifacts(EEG,bct)
+	print('eega_tIncShortBad : Total data rejected : '+str(sumNew/n*100 ))
 	return EEG,bct

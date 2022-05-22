@@ -162,7 +162,7 @@ def eega_RunAll(filesNames, pathIn, pathOut, args):
                 print(fileNameOut)
                 print(type(EEG))
                 if('set' in saveformat):
-                    EEG.save(fileNameOut)
+                    EEG.save(fileNameOut,overwrite =True)
                     
                 elif('mat' in saveformat):
                     #TODO find a way to save all var like matlab's function save

@@ -37,4 +37,7 @@ def eega_getoptions(P,varargin):
             extraInputs.append(value)
         i+=2
     OK = extraInputs == []
+    if(not OK):
+        print("eega_getoptions : Extra Inputs")
+        print(extraInputs)
     return P,OK,extraInputs

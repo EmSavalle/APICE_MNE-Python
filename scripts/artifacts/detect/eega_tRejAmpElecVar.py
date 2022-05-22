@@ -124,7 +124,6 @@ def eega_tRejAmpElecVar(EEG,args):
 
 	#Display rejected data
 	n=nEp*nEl*nS
-	print("Total data rejected "+ str(np.sum(np.sum(np.sum(BCT,0),0),0)/n*100)+"%")
+	print("eega_tRejAmpElecVar : Total data rejected "+ str(np.sum(np.sum(np.sum(BCT,0),0),0)/n*100)+"%")
 
-	eega_plot_artifacts(EEG,BCT)
 	return [EEG,BCT]
